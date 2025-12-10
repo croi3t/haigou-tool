@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配合変化データベース</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">    
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #333; min-height: 100vh; }
+        .container { max-width: 1900px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); border-radius: 10px; padding: 10px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; font-size: 2.5rem; margin-bottom: 10px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        h2 { border-bottom: 2px solid #667eea; padding-bottom: 10px; color: #2c3e50; margin-top: 20px; }
+        h3 { color: #574b90; margin-top: 15px; border-left: 5px solid #667eea; padding-left: 10px; }
+        .subtitle { text-align: center; color: #7f8c8d; font-size: 1.2rem; margin-bottom: 30px; }
+        
+        /* タブスタイル */
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #ecf0f1; overflow-x: auto; }
+        .tab { background: none; border: none; padding: 15px 20px; cursor: pointer; font-size: 1rem; font-weight: 500; color: #7f8c8d; border-bottom: 3px solid transparent; white-space: nowrap; }
+        .tab.active { color: #667eea; border-bottom-color: #667eea; }
+        .tab-content { display: none; padding: 10px; animation: fadeIn 0.4s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 検索・リスト表示エリア */
+        .drug-selection-area, .result-display-area { background: rgba(255, 255, 255, 0.1); border-radius: 15px; padding: 10px; margin-top: 20px; }
+        .panel-header { color: white; font-size: 1.3rem; font-weight: 600; margin-bottom: 15px; text-align: center; padding: 10px; background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        .drug-search-box { margin: 0px 15px 15px 15px; position: relative; }
+        .drug-search-box input { width: 100%; padding: 10px; border-radius: 8px; border: 2px solid #ddd; font-size: 1rem; }
+        .search-results { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-top: none; border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto; z-index: 1001; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .search-result-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; color: #333; }
+        .search-result-item:hover { background-color: #f0f0f0; }
+        .search-result-item .item-generic { font-weight: bold; }
+        .search-result-item .item-name { font-size: 0.8em; color: #666; margin-left: 5px; }
+        
+        .drug-category { background: linear-gradient(135deg, #74b9ff, #0984e3); color: white; padding: 10px 15px; margin: 15px 0 8px 0; border-radius: 8px; font-size: 1.1rem; font-weight: 600; position: sticky; top: 0; z-index: 100; }
+        .drug-list-container { background: white; border-radius: 10px; margin-bottom: 15px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .drug-grid-category { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; padding: 15px; }
+        .drug-card { background: #f8f9fa; border: 2px solid #e9ecef; padding: 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; min-height: 55px; display: flex; flex-direction: column; justify-content: center; }
+        .drug-card:hover { background: #e3f2fd; border-color: #667eea; transform: translateY(-2px); }
+        .drug-card.selected { background: #667eea; color: white; border-color: #4a69bd; }
+        .drug-name { font-size: 0.75rem; color: #6c757d; font-weight: normal; margin-bottom: 2px; }
+        .drug-card.selected .drug-name { color: rgba(255,255,255,0.8); }
+        .drug-generic { font-weight: 600; font-size: 0.9rem; color: #2c3e50; line-height: 1.2; }
+        .drug-card.selected .drug-generic { color: white; }
+        
+        .multi-search-section { background: linear-gradient(135deg, #e17055, #fdcb6e); border-radius: 15px; padding: 10px; margin-bottom: 30px; color: white; }
+        .selected-drugs-display { background: rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 15px; margin-bottom: 20px; }
+        .selector-label { font-weight: 600; margin-bottom: 10px; display: block; }
+        .selected-drug-tag { display: inline-block; background: rgba(255, 255, 255, 0.2); padding: 5px 10px; margin: 3px; border-radius: 15px; font-size: 0.85rem; }
+        .remove-drug { margin-left: 8px; cursor: pointer; font-weight: bold; }
+        .clear-btn { background: rgba(231, 76, 60, 0.2); border: 2px solid rgba(231, 76, 60, 0.3); color: white; padding: 5px 12px; font-size: 0.8rem; border-radius: 20px; cursor: pointer; margin-left: 10px; vertical-align: middle; }
+        .search-btn { position: sticky; bottom: 20px; left: 50%; transform: translateX(-50%); width: 250px; background: #fff; border: none; color: #667eea; padding: 15px 30px; font-size: 1.2rem; font-weight: 600; border-radius: 30px; cursor: pointer; transition: all 0.3s ease; z-index: 1000; box-shadow: 0 8px 25px rgba(0,0,0,0.2); }
+        .search-btn:hover { transform: translateX(-50%) translateY(-2px); }
+        .search-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #ccc; color: #777; }
+        
+        /* 結果表示 */
+        .result-details-list { list-style: none; padding: 0; margin-bottom: 20px; }
+        .result-details-list li { background: rgba(255,255,255,0.7); color: #333; padding: 8px; border-radius: 5px; margin-bottom: 5px; font-size: 0.9rem; }
+        .result-table-container { overflow-x: auto; }
+        .result-table { width: 100%; border-collapse: collapse; background: white; color: #333; border-radius: 8px; overflow: hidden; margin-top: 15px; }
+        .result-table th, .result-table td { padding: 10px; text-align: center; border: 1px solid #ddd; min-width: 100px; vertical-align: top; }
+        .result-table th { background: #667eea; color: white; font-weight: 600; }
+        .result-table .header-drug { writing-mode: vertical-rl; white-space: nowrap; }
+        .result-table .row-header { background: #f2f2f2; font-weight: 600; }
+        .result-table .self-cell { background-color: #e0e0e0; }
+        
+        .result-ok { font-size: 1.5rem; color: #27ae60; font-weight: bold; }
+        .result-ng { font-size: 1.5rem; color: #c0392b; font-weight: bold; }
+        .result-caution { font-size: 1.5rem; color: #f39c12; font-weight: bold; }
+        .result-nodata { font-size: 0.8rem; color: #7f8c8d; }        
+        
+        /* 詳細リストスタイル */
+        .result-conditions-list { list-style: none; padding: 0; margin: 5px 0 0 0; text-align: left; font-size: 0.9rem; }
+        .result-conditions-list li { background-color: #f9f9f9; padding: 8px; border-radius: 4px; margin-top: 5px; border-left: 3px solid #ddd; display: flex; align-items: flex-start; }
+        .result-conditions-list .notes { color: #e67e22; font-size: 0.8rem; margin-top: 4px; display: block; width: 100%; }
+        .condition-outcome { display: inline-block; min-width: 30px; text-align: center; font-weight: bold; margin-right: 10px; flex-shrink: 0; }
+        .condition-content-wrapper { flex-grow: 1; }
+        .condition-text { font-weight: 500; }
+        
+        .ref-link { text-decoration: none; font-size: 1.1rem; margin-left: 5px; vertical-align: middle; }
+        .doc-link { display: inline-block; padding: 4px 8px; background-color: #667eea; color: white !important; text-align: center; border-radius: 4px; text-decoration: none; font-size: 0.8rem; }
+        .doc-link:hover { background-color: #5a67d8; }
+        .doc-link.disabled { background-color: #ccc; pointer-events: none; cursor: default; }
+        
+        .scroll-top-btn { display: none; position: fixed; bottom: 20px; right: 30px; z-index: 1001; width: 60px; height: 60px; background: #fff; border: none; color: #764ba2; padding: 0; font-size: 1.5rem; font-weight: bold; border-radius: 50%; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 8px 25px rgba(0,0,0,0.2); }
+        .scroll-top-btn:hover { transform: translateY(-2px); background: #f0f0f0; }
+        
+        .result-table .clickable-cell { position: relative; cursor: pointer; padding-right: 30px; }
+        .details-indicator { position: absolute; right: 8px; top: 10px; color: #aaa; font-size: 1rem; font-weight: bold; pointer-events: none; }
+        .details-indicator::before { content: '⊕'; }
+        .clickable-cell.expanded .details-indicator::before { content: '⊖'; }
+        .details-content { margin-top: 8px; display: none; }
+
+        /* 知識ページ用スタイル */
+        .knowledge-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border-left: 5px solid #667eea; }
+        .criteria-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .criteria-table th, .criteria-table td { border: 1px solid #ddd; padding: 12px; vertical-align: top; }
+        .criteria-table th { background: #f8f9fa; width: 15%; text-align: center; font-size: 1.2rem; }
+        .criteria-list { margin: 0; padding-left: 20px; }
+        .criteria-list li { margin-bottom: 5px; }
+        .link-list { list-style: none; padding: 0; }
+        .link-list li { margin-bottom: 10px; padding-left: 10px; border-left: 3px solid #ccc; }
+        .link-list a { color: #667eea; font-weight: bold; text-decoration: none; }
+        .link-list a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💊 配合変化データベース</h1>
+        <div class="subtitle">医療従事者向け包括的配合変化情報システム</div>
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('multi-search')">🔍 多剤検索</button>
+            <button class="tab" onclick="showTab('drug-list')">📖 薬剤一覧</button>
+            <button class="tab" onclick="showTab('knowledge')">📚 資料・知識</button>
+            <button class="tab" onclick="showTab('change-history')">🔄 更新履歴</button>
+        </div>
+        
+        <div id="multi-search" class="tab-content active">
+            <div class="multi-search-section">
+                <div class="selected-drugs-display">
+                    <label class="selector-label">選択中の薬剤:</label>
+                    <div id="selectedDrugsList" style="display: inline;">薬剤が選択されていません</div>
+                    <button class="clear-btn" onclick="clearSelectedDrugs()">すべてクリア</button>
+                </div>
+                <div class="drug-selection-area">
+                    <div class="panel-header">薬剤選択</div>
+                    <div class="drug-search-box">
+                        <input type="text" id="drugSearchInput" onkeyup="handleSearchInput(event)" placeholder="薬剤名（ひらがな/カタカナ/漢字）で検索...">
+                        <div id="searchResults" class="search-results" style="display: none;"></div>
+                    </div>
+                    <div id="multiDrugCategories" class="drug-categories"></div>
+                </div>
+                <div class="result-display-area">
+                    <div id="results-header" class="panel-header">検索結果</div>
+                    <div id="multiSearchResults">薬剤を2つ以上選択してください</div>
+                </div>
+            </div>
+            <button class="search-btn" id="multiSearchBtn" onclick="searchMultiCompatibility()" disabled>
+                配合変化を検索
+            </button>
+        </div>
+
+        <div id="drug-list" class="tab-content">
+            <h2>薬剤マスター一覧</h2>
+            <div id="fullDrugListContainer" class="result-table-container"></div>
+        </div>
+
+        <div id="knowledge" class="tab-content">
+            <h2>配合変化に関する判定基準・注意事項</h2>
+            
+            <div class="knowledge-box">
+                <h3>基本的な考え方</h3>
+                <p>本データベースは、院内採用医薬品を中心とした配合変化情報を集約したものです。実際の臨床現場では、患者の状態、投与経路、配合時間などを総合的に判断する必要があります。</p>
+            </div>
+
+            <div class="knowledge-box">
+                <h3>判定基準（○・△・☓）</h3>
+                <table class="criteria-table">
+                    <tr>
+                        <th><span class="result-ok">○</span></th>
+                        <td>
+                            <strong>配合変化がない</strong><br>
+                            <p>抗菌薬との混合など長時間の混合が想定されない薬剤の24時間後の配合結果は評価しない(3時間後くらいまで変化なしであれば○とする)。</p>
+                            <ul class="criteria-list">
+                                <li>配合後〜24時間後において、外観変化がなく、本剤の残存率が90%以上(配合医薬品の残存率ではない)</li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><span class="result-caution">△</span></th>
+                        <td>
+                            <strong>配合条件によって結果が変わる / 類似薬データ / 注意が必要</strong><br>
+                            <p>下記のいずれか1つに該当するもの</p>
+                            <ul class="criteria-list">
+                                <li>配合後〜x時間後(1 &lt; x &lt; 24)において、外観変化がなく、残存率が90%以上
+                                    <ul><li>例) 測定時間6時間の実験において、6時間後までに外観変化がなく、その時点の残存率が91%</li></ul>
+                                </li>
+                                <li>配合24時間後の残存率が90%未満であるが、 外観変化がなく、配合後~1時間後の残存率が90%以上</li>
+                                <li>色調変化はあるが、混濁・沈殿・結晶析出・ゲル化などの変化はなく、配合後〜24時間後の残存率が90%以上</li>
+                                <li>一部の配合変化表において、残存率が記載されていない場合。外観変化がない場合または色調変化のみの場合は、〔残存率データなし〕 と記載し、可否を△としている</li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><span class="result-ng">☓</span></th>
+                        <td>
+                            <strong>配合直後の変化 / 結晶化・白濁などの明らかな配合変化</strong><br>
+                            <p>○および△の条件に該当しない場合</p>
+                            <ul class="criteria-list">
+                                <li>例) 配合後〜1時間後までの残存率が90%未満</li>
+                                <li>24時間以内に、混濁・沈殿・結晶析出、ゲル化等の色調以外の外観変化がある(当該医薬品の性状が濁っている場合も含む)。</li>
+                                <li>24時間以内に、色調変化および残存率データ低下 (90%未満)の双方がみられる</li>
+                            </ul>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="knowledge-box">
+                <h3>参考情報・リンク</h3>
+                <p>配合変化の詳細な機序や最新の添付文書情報は、以下の公的機関等のサイトをご参照ください。</p>
+                <ul class="link-list">
+                    <li><a href="https://www.pmda.go.jp/" target="_blank">独立行政法人 医薬品医療機器総合機構 (PMDA)</a> - 添付文書・IFの検索</li>
+                    <li><a href="https://www.japic.or.jp/" target="_blank">日本医薬情報センター (JAPIC)</a> - 医薬品情報データベース</li>
+                </ul>
+                <p style="font-size:0.9rem; color:#666;">※配合変化はpHの変化、塩析、キレート形成など様々な要因で起こります。特にpHの差が大きい薬剤同士の混合や、Ca・PO4を含む製剤の混合には十分注意してください。</p>
+            </div>
+        </div>
+
+        <div id="change-history" class="tab-content">
+            <h2>更新履歴</h2>
+            <div id="changeHistoryContainer" class="result-table-container"></div>
+        </div>
+    </div>
+    <button id="scrollTopBtn" class="scroll-top-btn" onclick="scrollToTop()">▲</button>
+    <script>
+        let selectedDrugsMulti = [];
+    // ▼▼▼▼▼ ここからがマクロによって置換される部分 ▼▼▼▼▼
+
+    // --DRUG_DATABASE_PLACEHOLDER--
+    // --COMPATIBILITY_DATABASE_PLACEHOLDER--
+    // --CHANGE_HISTORY_PLACEHOLDER--
+    
+    // ▲▲▲▲▲ ここまでがマクロによって置換される部分 ▲▲▲▲▲
+
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        function generateDrugLists() {
+            const categories = [...new Set(drugDatabase.map(d => d.category))];
+            const container = document.getElementById('multiDrugCategories');
+            container.innerHTML = '';
+            
+            categories.forEach(category => {
+                const categoryEl = document.createElement('div');
+                categoryEl.className = 'drug-category';
+                categoryEl.textContent = category;
+                container.appendChild(categoryEl);
+                const listContainer = document.createElement('div');
+                listContainer.className = 'drug-list-container';
+                const gridEl = document.createElement('div');
+                gridEl.className = 'drug-grid-category';
+                drugDatabase.filter(d => d.category === category).forEach(drug => {
+                    const card = document.createElement('div');
+                    card.className = 'drug-card';
+                    card.dataset.drugId = drug.id;
+                    card.innerHTML = `<div class="drug-generic">${drug.generic}</div><div class="drug-name">${drug.name}</div>`;
+                    card.onclick = () => toggleDrugSelection(drug.id);
+                    gridEl.appendChild(card);
+                });
+                listContainer.appendChild(gridEl);
+                container.appendChild(listContainer);
+            });
+        }
+        
+        function toKatakana(str) {
+            return str.replace(/[\u3041-\u3096]/g, match => String.fromCharCode(match.charCodeAt(0) + 0x60));
+        }
+
+        function handleSearchInput(event) {
+            const searchTerm = event.target.value;
+            filterDrugCards(searchTerm);
+            updateSuggestions(searchTerm);
+        }
+
+        function updateSuggestions(searchTerm) {
+            const resultsContainer = document.getElementById('searchResults');
+            if (searchTerm.length < 1) {
+                resultsContainer.style.display = 'none';
+                return;
+            }
+            const katakanaTerm = toKatakana(searchTerm.toLowerCase());
+            const filtered = drugDatabase.filter(drug => 
+                toKatakana(drug.name.toLowerCase()).includes(katakanaTerm) || 
+                toKatakana(drug.generic.toLowerCase()).includes(katakanaTerm)
+            ).slice(0, 10);
+            if (filtered.length === 0) {
+                resultsContainer.style.display = 'none';
+                return;
+            }
+            let resultsHtml = '';
+            filtered.forEach(drug => {
+                resultsHtml += `<div class="search-result-item" onclick="selectFromSuggestion('${drug.id}')">
+                                        <span class="item-generic">${drug.generic}</span>
+                                        <span class="item-name">(${drug.name})</span>
+                                </div>`;
+            });
+            resultsContainer.innerHTML = resultsHtml;
+            resultsContainer.style.display = 'block';
+        }
+
+        function selectFromSuggestion(drugId) {
+            toggleDrugSelection(drugId);
+            const searchInput = document.getElementById('drugSearchInput');
+            const resultsContainer = document.getElementById('searchResults');
+            searchInput.value = '';
+            resultsContainer.innerHTML = '';
+            resultsContainer.style.display = 'none';
+            filterDrugCards('');
+        }
+
+        function filterDrugCards(searchTerm) {
+            const katakanaTerm = toKatakana(searchTerm.toLowerCase());
+            document.querySelectorAll('.drug-card').forEach(card => {
+                const drugName = toKatakana(card.querySelector('.drug-name').textContent.toLowerCase());
+                const genericName = toKatakana(card.querySelector('.drug-generic').textContent.toLowerCase());
+                if (drugName.includes(katakanaTerm) || genericName.includes(katakanaTerm)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        document.addEventListener('click', function(event) {
+            const searchBox = document.querySelector('.drug-search-box');
+            if (!searchBox.contains(event.target)) {
+                document.getElementById('searchResults').style.display = 'none';
+            }
+        });
+        function toggleDrugSelection(drugId) {
+            const index = selectedDrugsMulti.indexOf(drugId);
+            if (index > -1) {
+                selectedDrugsMulti.splice(index, 1);
+            } else {
+                selectedDrugsMulti.push(drugId);
+            }
+            updateSelectedDrugsDisplay();
+            updateDrugCardStyles();
+        }
+        
+        function updateSelectedDrugsDisplay() {
+            const listEl = document.getElementById('selectedDrugsList');
+            if (selectedDrugsMulti.length === 0) {
+                listEl.innerHTML = '薬剤が選択されていません';
+            } else {
+                listEl.innerHTML = '';
+                selectedDrugsMulti.map(id => drugDatabase.find(d => d.id === id)).forEach(drug => {
+                    const tag = document.createElement('span');
+                    tag.className = 'selected-drug-tag';
+                    tag.textContent = drug.generic;
+                    const removeBtn = document.createElement('span');
+                    removeBtn.className = 'remove-drug';
+                    removeBtn.innerHTML = ' &times;';
+                    removeBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        toggleDrugSelection(drug.id);
+                    };
+                    tag.appendChild(removeBtn);
+                    listEl.appendChild(tag);
+                });
+            }
+            document.getElementById('multiSearchBtn').disabled = selectedDrugsMulti.length < 2;
+        }
+
+        function updateDrugCardStyles() {
+            document.querySelectorAll('.drug-card').forEach(card => {
+                if (selectedDrugsMulti.includes(card.dataset.drugId)) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+        }
+
+        function clearSelectedDrugs() {
+            selectedDrugsMulti = [];
+            updateSelectedDrugsDisplay();
+            updateDrugCardStyles();
+            document.getElementById('multiSearchResults').innerHTML = '薬剤を2つ以上選択してください';
+            document.getElementById('drugSearchInput').value = '';
+            filterDrugCards('');
+        }
+
+        function searchMultiCompatibility() {
+            const resultsContainer = document.getElementById('multiSearchResults');
+            const selected = selectedDrugsMulti.map(id => drugDatabase.find(d => d.id === id));
+            
+            let html = '<h4>選択薬剤の詳細情報</h4>';
+            html += '<ul class="result-details-list">';
+            selected.forEach(drug => {
+                html += `<li><strong>${drug.generic}</strong> (${drug.name}) (pH: ${drug.ph}) - 備考: ${drug.remarks}</li>`;
+            });
+            html += '</ul>';
+            html += '<h4>配合変化 総当たり表</h4>';
+            html += '<div class="result-table-container"><table class="result-table"><thead><tr><th>&nbsp;</th>';
+            selected.forEach(drug => {
+                html += `<th><span class="header-drug">${drug.generic}</span></th>`;
+            });
+            html += '</tr></thead><tbody>';
+            selected.forEach(drug1 => {
+                html += `<tr><td class="row-header">${drug1.generic}</td>`;
+                selected.forEach(drug2 => {
+                    if (drug1.id === drug2.id) {
+                        html += '<td class="self-cell">-</td>';
+                    } else {
+                        // Matrix方式での検索（順序問わず）
+                        let mapData = undefined;
+                        if (compatibilityData.matrix && compatibilityData.matrix[drug1.id] && compatibilityData.matrix[drug1.id][drug2.id]) {
+                            mapData = compatibilityData.matrix[drug1.id][drug2.id];
+                        }
+                        if (!mapData && compatibilityData.matrix && compatibilityData.matrix[drug2.id] && compatibilityData.matrix[drug2.id][drug1.id]) {
+                            mapData = compatibilityData.matrix[drug2.id][drug1.id];
+                        }
+
+                        const uniqueId = `details-${drug1.id}-${drug2.id}`;
+                        
+                        if (mapData) {
+                            const interactionsArray = compatibilityData.interactions[mapData.id] || [];
+                            const allResults = [];
+
+                            // ★修正点: 概要(reason)と詳細(interactions)を統合する
+                            
+                            // 1. 概要(reason)がある場合、基本情報として追加
+                            if (mapData.reason && mapData.reason.trim() !== '') {
+                                allResults.push({
+                                    outcome: mapData.result,
+                                    condition: mapData.reason, 
+                                    notes: '（概要）',
+                                    ref: ''
+                                });
+                            }
+
+                            // 2. 詳細データ（interactions）を追加
+                            if (interactionsArray.length > 0) {
+                                allResults.push(...interactionsArray);
+                            }
+
+                            // 代表結果判定（記号の表記ゆれに対応）
+                            let representativeResult = mapData.result;
+                            const checkResult = (res) => {
+                                if (!res) return '';
+                                const r = res.trim();
+                                if (r === '☓' || r === '×' || r === 'X' || r === 'x') return 'NG';
+                                if (r === '△' || r === '▲') return 'Caution';
+                                if (r === '○' || r === '〇') return 'OK';
+                                return '';
+                            };
+
+                            if (allResults.some(r => checkResult(r.outcome) === 'NG')) representativeResult = '☓';
+                            else if (allResults.some(r => checkResult(r.outcome) === 'Caution')) representativeResult = '△';
+                            else if (allResults.some(r => checkResult(r.outcome) === 'OK')) representativeResult = '○';
+
+                            const detailsContent = buildConditionsHtml(allResults);
+                            const isClickable = detailsContent ? 'clickable-cell' : '';
+                            
+                            html += `<td class="${isClickable}" onclick="${isClickable ? `toggleDetails('${uniqueId}')` : ''}">`;
+                            
+                            let displaySymbol = '';
+                            const finalCheck = checkResult(representativeResult);
+                            if (finalCheck === 'NG') displaySymbol = `<span class="result-ng">☓</span>`;
+                            else if (finalCheck === 'Caution') displaySymbol = `<span class="result-caution">△</span>`;
+                            else if (finalCheck === 'OK') displaySymbol = `<span class="result-ok">○</span>`;
+                            else displaySymbol = `<span class="result-ok">${representativeResult}</span>`;
+                            
+                            html += displaySymbol;
+
+                            if (isClickable) {
+                                html += '<span class="details-indicator"></span>';
+                                html += `<div class="details-content" id="${uniqueId}">${detailsContent}</div>`;
+                            }
+                            html += '</td>';
+
+                        } else {
+                            html += '<td><span class="result-nodata">データ無し</span></td>';
+                        }
+                    }
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+            resultsContainer.innerHTML = html;
+
+            const resultHeader = document.getElementById('results-header');
+            if(resultHeader) {
+                resultHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+        
+        function toggleDetails(elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const cell = el.parentElement;
+            if (el.style.display === 'none' || el.style.display === '') {
+                el.style.display = 'block';
+                cell.classList.add('expanded');
+            } else {
+                el.style.display = 'none';
+                cell.classList.remove('expanded');
+            }
+        }
+
+        function buildConditionsHtml(conditions) {
+            if (!conditions || conditions.length === 0) return '';
+            let listHtml = '<ul class="result-conditions-list">';
+            conditions.forEach(c => {
+                let outcomeSymbol = '';
+                const r = c.outcome ? c.outcome.trim() : '';
+                if (r === '○' || r === '〇') outcomeSymbol = '<span class="result-ok">○</span>';
+                else if (r === '☓' || r === '×' || r === 'X' || r === 'x') outcomeSymbol = '<span class="result-ng">☓</span>';
+                else if (r === '△' || r === '▲') outcomeSymbol = '<span class="result-caution">△</span>';
+                else outcomeSymbol = `<span>${r}</span>`;
+
+                const notesHtml = c.notes ? `<span class="notes">特記: ${c.notes}</span>` : '';
+                const detailRefHtml = c.ref ? `<a href="${c.ref}" target="_blank" class="ref-link" title="参考文献を開く">📖</a>` : '';
+                
+                listHtml += `<li>
+                    <span class="condition-outcome">${outcomeSymbol}</span> 
+                    <div class="condition-content-wrapper">
+                        <span class="condition-text">${c.condition || '(条件詳細なし)'}</span>
+                        ${detailRefHtml}${notesHtml}
+                    </div>
+                </li>`;
+            });
+            listHtml += '</ul>';
+            return listHtml;
+        }
+
+        function generateFullDrugListTable() {
+            const container = document.getElementById('fullDrugListContainer');
+            if (!drugDatabase || drugDatabase.length === 0) {
+                container.innerHTML = "薬剤データがありません。";
+                return;
+            }
+            const createLinks = (urls, text) => {
+                if (!urls) { return `<span class="doc-link disabled">${text}</span>`; }
+                const urlArray = urls.split('\n').filter(url => url.trim() !== '');
+                if (urlArray.length === 0) { return `<span class="doc-link disabled">${text}</span>`; }
+                return urlArray.map((url, i) => {
+                    const linkText = urlArray.length > 1 ? `${text}${i + 1}` : text;
+                    return `<a href="${url.trim()}" target="_blank" class="doc-link">${linkText}</a>`;
+                }).join(' ');
+            };
+            let tableHtml = '<table class="result-table"><thead><tr>';
+            tableHtml += '<th>一般名</th><th>商品名または治療薬分類</th><th>分類</th><th>pH</th><th style="min-width: 250px;">備考</th><th>添付文書</th><th>IF</th><th>その他</th>';
+            tableHtml += '</tr></thead><tbody>';
+            drugDatabase.forEach(drug => {
+                tableHtml += `<tr>`;
+                tableHtml += `<td style="text-align: left;">${drug.generic || ''}</td>`;
+                tableHtml += `<td style="text-align: left;">${drug.name || ''}</td>`;
+                tableHtml += `<td>${drug.category || ''}</td>`;
+                tableHtml += `<td>${drug.ph || ''}</td>`;
+                tableHtml += `<td style="text-align: left;">${drug.remarks || ''}</td>`;
+                tableHtml += `<td>${createLinks(drug.link_pi, '開く')}</td>`;
+                tableHtml += `<td>${createLinks(drug.link_if, '開く')}</td>`;
+                tableHtml += `<td>${createLinks(drug.link_other, '開く')}</td>`;
+                tableHtml += `</tr>`;
+            });
+            tableHtml += '</tbody></table>';
+            container.innerHTML = tableHtml;
+        }
+
+        function generateChangeHistory() {
+            const container = document.getElementById('changeHistoryContainer');
+            if (!changeHistory || changeHistory.length === 0) {
+                container.innerHTML = "更新履歴データがありません。";
+                return;
+            }
+            let tableHtml = '<table class="result-table"><thead><tr>';
+            tableHtml += '<th>更新日</th><th>バージョン</th><th style="min-width: 400px;">変更内容</th>';
+            tableHtml += '</tr></thead><tbody>';
+            changeHistory.forEach(entry => {
+                tableHtml += `<tr>`;
+                tableHtml += `<td>${entry.date || ''}</td>`;
+                tableHtml += `<td>${entry.version || ''}</td>`;
+                tableHtml += `<td style="text-align: left;">${entry.description || ''}</td>`;
+                tableHtml += `</tr>`;
+            });
+            tableHtml += '</tbody></table>';
+            container.innerHTML = tableHtml;
+        }
+        
+        window.onload = () => {
+            if (typeof drugDatabase !== 'undefined') {
+                generateDrugLists();
+                generateFullDrugListTable();
+            }
+            if (typeof changeHistory !== 'undefined') {
+                generateChangeHistory();
+            }
+            const scrollTopBtn = document.getElementById('scrollTopBtn');
+            if (scrollTopBtn) {
+                window.onscroll = function() {
+                    if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
+                        scrollTopBtn.style.display = "block";
+                    } else {
+                        scrollTopBtn.style.display = "none";
+                    }
+                };
+            }
+        };
+
+        function scrollToTop() {
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+    </script>
+</body>
+</html>
