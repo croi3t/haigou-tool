@@ -242,6 +242,12 @@
             event.currentTarget.classList.add('active');
         }
 
+        // ★追加関数: 薬剤名の改行(\n)を<br>タグに変換する
+        function formatName(name) {
+            if (!name) return '';
+            return name.replace(/\n/g, '<br>');
+        }
+
         function generateDrugLists() {
             const categories = [...new Set(drugDatabase.map(d => d.category))];
             const container = document.getElementById('multiDrugCategories');
@@ -260,7 +266,8 @@
                     const card = document.createElement('div');
                     card.className = 'drug-card';
                     card.dataset.drugId = drug.id;
-                    card.innerHTML = `<div class="drug-generic">${drug.generic}</div><div class="drug-name">${drug.name}</div>`;
+                    // ★修正: formatNameを使用
+                    card.innerHTML = `<div class="drug-generic">${drug.generic}</div><div class="drug-name">${formatName(drug.name)}</div>`;
                     card.onclick = () => toggleDrugSelection(drug.id);
                     gridEl.appendChild(card);
                 });
@@ -296,9 +303,10 @@
             }
             let resultsHtml = '';
             filtered.forEach(drug => {
+                // ★修正: formatNameを使用
                 resultsHtml += `<div class="search-result-item" onclick="selectFromSuggestion('${drug.id}')">
                                         <span class="item-generic">${drug.generic}</span>
-                                        <span class="item-name">(${drug.name})</span>
+                                        <span class="item-name">(${formatName(drug.name)})</span>
                                 </div>`;
             });
             resultsContainer.innerHTML = resultsHtml;
@@ -369,18 +377,16 @@
             document.getElementById('multiSearchBtn').disabled = selectedDrugsMulti.length < 2;
         }
 
-        // ▼▼▼ 追加機能: 全選択用関数 ▼▼▼
+        // 全選択機能
         function selectAllDrugs() {
             if(!confirm("【注意】全薬剤を選択しますか？\n組み合わせ数が多いため、検索時にブラウザの動作が重くなる可能性があります。")) {
                 return;
             }
-            // 全ての薬剤IDを取得して選択状態にする
             selectedDrugsMulti = drugDatabase.map(d => d.id);
             updateSelectedDrugsDisplay();
             updateDrugCardStyles();
             document.getElementById('multiSearchBtn').disabled = false;
         }
-        // ▲▲▲ 追加機能ここまで ▲▲▲
 
         function updateDrugCardStyles() {
             document.querySelectorAll('.drug-card').forEach(card => {
@@ -408,7 +414,8 @@
             let html = '<h4>選択薬剤の詳細情報</h4>';
             html += '<ul class="result-details-list">';
             selected.forEach(drug => {
-                html += `<li><strong>${drug.generic}</strong> (${drug.name}) (pH: ${drug.ph}) - 備考: ${drug.remarks}</li>`;
+                // ★修正: formatNameを使用
+                html += `<li><strong>${drug.generic}</strong> (${formatName(drug.name)}) (pH: ${drug.ph}) - 備考: ${drug.remarks}</li>`;
             });
             html += '</ul>';
             html += '<h4>配合変化 総当たり表</h4>';
@@ -423,7 +430,7 @@
                     if (drug1.id === drug2.id) {
                         html += '<td class="self-cell">-</td>';
                     } else {
-                        // Matrix方式での検索（順序問わず）
+                        // Matrix方式での検索
                         let mapData = undefined;
                         if (compatibilityData.matrix && compatibilityData.matrix[drug1.id] && compatibilityData.matrix[drug1.id][drug2.id]) {
                             mapData = compatibilityData.matrix[drug1.id][drug2.id];
@@ -438,23 +445,22 @@
                             const interactionsArray = compatibilityData.interactions[mapData.id] || [];
                             const allResults = [];
 
-                            // 1. 概要(reason)がある場合、基本情報として追加
+                            // 1. 概要(reason)
                             if (mapData.reason && mapData.reason.trim() !== '') {
                                 allResults.push({
                                     outcome: mapData.result,
                                     condition: mapData.reason, 
                                     notes: '（概要）',
-                                    // ★修正点：VBA側でrefが含まれている場合はそれを使用
                                     ref: mapData.ref || ''
                                 });
                             }
 
-                            // 2. 詳細データ（interactions）を追加
+                            // 2. 詳細データ
                             if (interactionsArray.length > 0) {
                                 allResults.push(...interactionsArray);
                             }
 
-                            // 代表結果判定（記号の表記ゆれに対応）
+                            // 代表結果判定
                             let representativeResult = mapData.result;
                             const checkResult = (res) => {
                                 if (!res) return '';
@@ -565,7 +571,8 @@
             drugDatabase.forEach(drug => {
                 tableHtml += `<tr>`;
                 tableHtml += `<td style="text-align: left;">${drug.generic || ''}</td>`;
-                tableHtml += `<td style="text-align: left;">${drug.name || ''}</td>`;
+                // ★修正: formatNameを使用
+                tableHtml += `<td style="text-align: left;">${formatName(drug.name)}</td>`;
                 tableHtml += `<td>${drug.category || ''}</td>`;
                 tableHtml += `<td>${drug.ph || ''}</td>`;
                 tableHtml += `<td style="text-align: left;">${drug.remarks || ''}</td>`;
