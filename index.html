@@ -113,6 +113,73 @@
         .link-list li { margin-bottom: 10px; padding-left: 10px; border-left: 3px solid #ccc; }
         .link-list a { color: #667eea; font-weight: bold; text-decoration: none; }
         .link-list a:hover { text-decoration: underline; }
+
+        /* ▼▼▼ 追加: 薬剤一覧テーブルの固定表示・スクロール設定 ▼▼▼ */
+        #drugList .result-table-container {
+            overflow: auto; /* 縦横スクロール */
+            max-height: 80vh; /* 画面高さに合わせて調整 */
+            position: relative;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        #drugList .result-table {
+            border-collapse: separate; /* stickyを効かせるため */
+            border-spacing: 0;
+            margin-top: 0;
+        }
+
+        /* ヘッダー固定 */
+        #drugList .result-table th {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            box-shadow: 0 2px 2px rgba(0,0,0,0.1);
+        }
+
+        /* 1列目（一般名）の固定 */
+        #drugList .result-table th:nth-child(1),
+        #drugList .result-table td:nth-child(1) {
+            position: sticky;
+            left: 0;
+            z-index: 15;
+            background-color: #f9f9fb; /* 背景色を設定して透け防止 */
+            border-right: 2px solid #d1d5db;
+            width: 140px;
+            min-width: 140px;
+            max-width: 140px;
+        }
+        /* ヘッダーの1列目はz-indexをさらに高く */
+        #drugList .result-table th:nth-child(1) {
+            z-index: 25;
+            background-color: #667eea;
+            color: white;
+        }
+
+        /* 2列目（商品名）の固定 */
+        #drugList .result-table th:nth-child(2),
+        #drugList .result-table td:nth-child(2) {
+            position: sticky;
+            left: 140px; /* 1列目の幅分ずらす */
+            z-index: 15;
+            background-color: #f9f9fb;
+            border-right: 2px solid #d1d5db;
+            width: 150px;
+            min-width: 150px;
+            max-width: 150px;
+        }
+        #drugList .result-table th:nth-child(2) {
+            z-index: 25;
+            background-color: #667eea;
+            color: white;
+        }
+
+        /* 他の列の幅調整 */
+        #drugList .result-table th:nth-child(3), #drugList .result-table td:nth-child(3) { min-width: 120px; } /* 分類 */
+        #drugList .result-table th:nth-child(4), #drugList .result-table td:nth-child(4) { min-width: 80px; }  /* pH */
+        #drugList .result-table th:nth-child(5), #drugList .result-table td:nth-child(5) { min-width: 250px; text-align: left; } /* 備考 */
+        /* ▲▲▲ 追加ここまで ▲▲▲ */
+
     </style>
 </head>
 <body>
@@ -242,7 +309,7 @@
             event.currentTarget.classList.add('active');
         }
 
-        // ★追加関数: 薬剤名の改行(\n)を<br>タグに変換する
+        // 薬剤名の改行(\n)を<br>タグに変換する
         function formatName(name) {
             if (!name) return '';
             return name.replace(/\n/g, '<br>');
@@ -266,7 +333,6 @@
                     const card = document.createElement('div');
                     card.className = 'drug-card';
                     card.dataset.drugId = drug.id;
-                    // ★修正: formatNameを使用
                     card.innerHTML = `<div class="drug-generic">${drug.generic}</div><div class="drug-name">${formatName(drug.name)}</div>`;
                     card.onclick = () => toggleDrugSelection(drug.id);
                     gridEl.appendChild(card);
@@ -303,7 +369,6 @@
             }
             let resultsHtml = '';
             filtered.forEach(drug => {
-                // ★修正: formatNameを使用
                 resultsHtml += `<div class="search-result-item" onclick="selectFromSuggestion('${drug.id}')">
                                         <span class="item-generic">${drug.generic}</span>
                                         <span class="item-name">(${formatName(drug.name)})</span>
@@ -414,7 +479,6 @@
             let html = '<h4>選択薬剤の詳細情報</h4>';
             html += '<ul class="result-details-list">';
             selected.forEach(drug => {
-                // ★修正: formatNameを使用
                 html += `<li><strong>${drug.generic}</strong> (${formatName(drug.name)}) (pH: ${drug.ph}) - 備考: ${drug.remarks}</li>`;
             });
             html += '</ul>';
@@ -571,7 +635,6 @@
             drugDatabase.forEach(drug => {
                 tableHtml += `<tr>`;
                 tableHtml += `<td style="text-align: left;">${drug.generic || ''}</td>`;
-                // ★修正: formatNameを使用
                 tableHtml += `<td style="text-align: left;">${formatName(drug.name)}</td>`;
                 tableHtml += `<td>${drug.category || ''}</td>`;
                 tableHtml += `<td>${drug.ph || ''}</td>`;
