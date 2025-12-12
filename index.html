@@ -15,7 +15,7 @@
             color: #333; 
             min-height: 100vh; 
             padding-bottom: 50vh; /* 詳細ウィンドウ用の余白 */
-            overflow-y: auto; /* 画面全体のスクロール */
+            overflow-y: auto; 
         }
         .container { 
             max-width: 1900px; margin: 0 auto; 
@@ -23,7 +23,6 @@
             border-radius: 10px; padding: 10px; 
             box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
             display: flex; flex-direction: column;
-            /* 高さは内容に応じて伸びるようにする（body側でスクロール） */
         }
 
         h1 { text-align: center; color: #2c3e50; font-size: 2rem; margin: 0 0 10px 0; flex-shrink: 0; }
@@ -48,7 +47,6 @@
             padding: 5px; 
             animation: fadeIn 0.4s ease; 
         }
-        /* activeクラスがついた時だけ表示 */
         .tab-content.active { display: block; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -66,7 +64,6 @@
             background: linear-gradient(135deg, #74b9ff, #0984e3); 
             color: white; padding: 8px 15px; margin: 10px 0 5px 0; 
             border-radius: 8px; font-size: 1rem; font-weight: 600; 
-            /* 固定解除 */
         }
 
         .drug-list-container { background: white; border-radius: 10px; margin-bottom: 15px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -96,7 +93,7 @@
         .result-details-list li { background: rgba(255,255,255,0.7); color: #333; padding: 8px; border-radius: 5px; margin-bottom: 5px; font-size: 0.9rem; }
         .result-table-container { overflow-x: auto; }
         
-        /* 多剤検索タブのテーブル設定 (シンプル表示) */
+        /* 多剤検索タブのテーブル設定 */
         #multi-search .result-table { width: 100%; border-collapse: collapse; background: white; color: #333; border-radius: 8px; margin-top: 10px; }
         #multi-search .result-table th, 
         #multi-search .result-table td { padding: 10px; text-align: center; border: 1px solid #ddd; vertical-align: middle; white-space: nowrap; position: relative; }
@@ -110,7 +107,7 @@
         .result-caution { font-size: 1.5rem; color: #f39c12; font-weight: bold; }
         .result-nodata { font-size: 0.8rem; color: #7f8c8d; }        
         
-        /* 詳細ありマーク（丸囲みプラス） */
+        /* 詳細ありマーク */
         .details-indicator { 
             position: absolute; bottom: 3px; right: 3px; 
             color: #667eea; font-size: 1.4rem; font-weight: bold;
@@ -119,10 +116,13 @@
         }
         .details-indicator::after { content: '⊕'; }
 
-        /* 詳細ウィンドウ（モードレス・右下固定） */
+        /* 詳細ウィンドウ（モードレス・幅自動拡張） */
         #detail-window {
             position: fixed; bottom: 20px; right: 20px; 
-            width: 90%; max-width: 600px; max-height: 60vh;
+            /* 幅: 中身に合わせて広がる。ただし最大で画面の95%まで */
+            width: fit-content; max-width: 95%; 
+            min-width: 350px;
+            max-height: 60vh;
             background: white; border-radius: 12px;
             box-shadow: 0 5px 25px rgba(0,0,0,0.3);
             display: none; flex-direction: column;
@@ -130,7 +130,7 @@
             animation: slideIn 0.3s ease-out;
         }
         @media (max-width: 768px) {
-            #detail-window { left: 5%; right: 5%; bottom: 10px; width: 90%; }
+            #detail-window { left: 2.5%; right: 2.5%; bottom: 10px; width: 95%; max-width: 95%; }
         }
         @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
@@ -159,39 +159,33 @@
             border-left: 4px solid #667eea; padding-left: 8px; background: #f0f2f5; 
         }
 
-        /* 詳細リスト（3行構成・1列表示・折り返しなし） */
-        .result-conditions-list { list-style: none; padding: 0; margin: 0; width: 100%; }
+        /* 詳細リスト（3行構成・折り返しなしで幅拡張） */
+        .result-conditions-list { list-style: none; padding: 0; margin: 0; }
         .result-conditions-list li { 
             background-color: #fff; padding: 12px 8px; 
             border-bottom: 1px dashed #bbb; 
-            display: flex; flex-direction: column; /* 縦並び */
+            display: flex; flex-direction: column; 
             font-size: 1rem;
-            white-space: nowrap; /* 折り返しなし */
+            white-space: nowrap; /* 折り返し禁止 */
         }
         .result-conditions-list li:last-child { border-bottom: none; }
         
-        .condition-row-1 { /* 1行目: 配合条件 */
-            margin-bottom: 6px;
-            text-align: left; /* 左揃え */
-            font-size: 1rem; /* フォントサイズ統一 */
-            font-weight: 500;
+        .condition-row-1 { 
+            margin-bottom: 6px; text-align: left; 
+            font-size: 1rem; font-weight: normal; /* 太字解除 */
         }
-        .condition-row-2 { /* 2行目: 判定 + 参照 */
-            display: flex; align-items: center; margin-bottom: 6px;
-        }
+        .condition-row-2 { display: flex; align-items: center; margin-bottom: 6px; }
         .condition-outcome { 
             display: inline-block; text-align: center; 
             font-weight: bold; font-size: 1.4rem; margin-right: 15px;
         }
-        .condition-row-3 { /* 3行目: 特記 */
-            color: #e67e22; font-size: 1rem; margin-left: 5px;
-        }
+        .condition-row-3 { color: #e67e22; font-size: 1rem; margin-left: 5px; }
         
         .ref-link { text-decoration: none; font-size: 1.2rem; cursor: pointer; }
         .doc-link { display: inline-block; padding: 2px 6px; background-color: #667eea; color: white !important; border-radius: 4px; text-decoration: none; font-size: 0.8rem; margin: 2px; }
         .doc-link.disabled { background-color: #ccc; pointer-events: none; }
         
-        /* トップへ戻るボタン（左下に移動） */
+        /* トップへ戻るボタン（左下） */
         .scroll-top-btn { display: none; position: fixed; bottom: 20px; left: 20px; z-index: 1001; width: 50px; height: 50px; background: #fff; border: 2px solid #667eea; color: #667eea; padding: 0; font-size: 1.5rem; font-weight: bold; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .scroll-top-btn:hover { background: #667eea; color: white; }
         
@@ -202,97 +196,91 @@
         /* 知識ページ用スタイル */
         .knowledge-box { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #667eea; }
         .criteria-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .criteria-table th, .criteria-table td { border: 1px solid #ddd; padding: 10px; vertical-align: top; }
-        .criteria-table th { background: #f8f9fa; width: 15%; text-align: center; }
-        .criteria-list { margin: 0; padding-left: 20px; }
+        .criteria-table th, .criteria-table td { border: 1px solid #ddd; padding: 10px; vertical-align: top; text-align: left; }
+        .criteria-table th { background: #f8f9fa; width: 80px; text-align: center; vertical-align: middle; }
+        .criteria-list { margin: 5px 0 0 0; padding-left: 20px; }
         .criteria-list li { margin-bottom: 5px; }
+        
         .link-list { list-style: none; padding: 0; }
         .link-list li { margin-bottom: 10px; padding-left: 10px; border-left: 3px solid #ccc; }
         .link-list a { color: #667eea; font-weight: bold; text-decoration: none; }
         .link-list a:hover { text-decoration: underline; }
 
-        /* ▼▼▼ 【薬剤一覧】タブ専用スタイル (ID: drug-list.active で指定) ▼▼▼ */
-        /* display: flex は activeクラスが付いたときのみ適用 */
-        #drug-list.active {
-            height: calc(100vh - 120px); /* 画面高さに合わせて固定 */
+        /* ▼▼▼ 【薬剤一覧】タブ専用スタイル (ID: drug-list で指定) ▼▼▼ */
+        #drug-list {
+            height: calc(100vh - 120px); 
             display: flex; flex-direction: column; 
             overflow: hidden; padding: 0;
-            padding-top: 5px; /* 上部余白 */
+            padding-top: 5px;
         }
+        #drug-list h2 { margin: 10px; flex-shrink: 0; }
         
-        #drug-list.active h2 { margin: 10px; flex-shrink: 0; }
-        
-        #drug-list.active .result-table-container {
-            overflow: auto; 
-            flex-grow: 1; 
-            position: relative;
-            border: 1px solid #ccc;
-            margin-bottom: 20px;
+        #drug-list .result-table-container {
+            overflow: auto; flex-grow: 1; position: relative;
+            border: 1px solid #ccc; margin-bottom: 20px;
         }
-        
-        #drug-list.active .result-table {
-            border-collapse: separate; 
-            border-spacing: 0;
-            margin-top: 0;
-            width: max-content; 
+        #drug-list .result-table {
+            border-collapse: separate; border-spacing: 0;
+            margin-top: 0; width: max-content; 
         }
 
-        #drug-list.active .result-table th, 
-        #drug-list.active .result-table td {
+        /* 薬剤一覧：セル設定 */
+        #drug-list .result-table th, 
+        #drug-list .result-table td {
             padding: 8px; text-align: left; 
             border-right: 1px solid #ddd; border-bottom: 1px solid #ddd;
             vertical-align: middle; white-space: normal; word-break: break-word;
         }
 
         /* ヘッダー固定 */
-        #drug-list.active .result-table thead th {
+        #drug-list .result-table thead th {
             position: sticky; top: 0; z-index: 20;
             background-color: #667eea; color: white;
             box-shadow: 0 2px 2px rgba(0,0,0,0.1); height: 40px; text-align: center;
         }
 
         /* 1列目（一般名）固定 */
-        #drug-list.active .result-table th:nth-child(1),
-        #drug-list.active .result-table td:nth-child(1) {
+        #drug-list .result-table th:nth-child(1),
+        #drug-list .result-table td:nth-child(1) {
             position: sticky; left: 0; z-index: 15; 
             background-color: #f9f9fb; border-right: 2px solid #b0b0b0;
             width: 140px; min-width: 140px; max-width: 140px;
         }
-        #drug-list.active .result-table th:nth-child(1) { z-index: 30; background-color: #5a67d8; }
+        #drug-list .result-table th:nth-child(1) { z-index: 30; background-color: #5a67d8; }
 
         /* 2列目（商品名）固定 */
-        #drug-list.active .result-table th:nth-child(2),
-        #drug-list.active .result-table td:nth-child(2) {
+        #drug-list .result-table th:nth-child(2),
+        #drug-list .result-table td:nth-child(2) {
             position: sticky; left: 140px; z-index: 15;
             background-color: #f9f9fb; border-right: 2px solid #b0b0b0;
             width: 150px; min-width: 150px; max-width: 150px;
         }
-        #drug-list.active .result-table th:nth-child(2) { z-index: 30; background-color: #5a67d8; }
+        #drug-list .result-table th:nth-child(2) { z-index: 30; background-color: #5a67d8; }
 
         /* 列幅調整 */
-        /* 列順: 1:一般名, 2:商品名, 3:分類, 4:添付文書, 5:IF, 6:その他, 7:pH, 8:備考 */
-        #drug-list.active .result-table th:nth-child(3) { min-width: 100px; } /* 分類 */
-        #drug-list.active .result-table th:nth-child(4) { min-width: 80px; text-align:center;} /* 添付文書 */
-        #drug-list.active .result-table th:nth-child(5) { min-width: 50px; text-align:center;} /* IF */
+        #drug-list .result-table th:nth-child(3) { min-width: 100px; } /* 分類 */
+        #drug-list .result-table th:nth-child(4) { min-width: 80px; text-align:center;} /* 添付文書 */
+        #drug-list .result-table th:nth-child(5) { min-width: 50px; text-align:center;} /* IF */
         
-        /* その他列（幅広・折り返し） */
-        #drug-list.active .result-table th:nth-child(6) { 
-            min-width: 180px; max-width: 250px; 
-            text-align:center;
+        /* その他列（折り返し対応） */
+        #drug-list .result-table th:nth-child(6) { min-width: 180px; max-width: 250px; text-align:center; } 
+        
+        #drug-list .result-table th:nth-child(7) { min-width: 80px; } /* pH */
+        
+        /* 備考列（幅固定・折り返し） */
+        #drug-list .result-table th:nth-child(8) { 
+            width: 200px; min-width: 200px; max-width: 200px; 
         } 
         
-        #drug-list.active .result-table th:nth-child(7) { min-width: 80px; } /* pH */
-        
-        /* 備考列（幅広・折り返し） */
-        #drug-list.active .result-table th:nth-child(8) { 
-            min-width: 250px; max-width: 400px; 
-        } 
-        
-        #drug-list.active .result-table td:nth-child(4),
-        #drug-list.active .result-table td:nth-child(5),
-        #drug-list.active .result-table td:nth-child(6) { text-align: center; }
-        /* ▲▲▲ 【薬剤一覧】タブ専用スタイル ここまで ▲▲▲ */
+        #drug-list .result-table td:nth-child(4),
+        #drug-list .result-table td:nth-child(5),
+        #drug-list .result-table td:nth-child(6) { text-align: center; }
 
+        /* ▼▼▼ 【更新履歴】タブ専用スタイル ▼▼▼ */
+        #change-history .result-table th, #change-history .result-table td {
+            text-align: left; padding: 10px; border: 1px solid #ddd;
+        }
+        #change-history .result-table th { background: #667eea; color: white; text-align: center; }
     </style>
 </head>
 <body>
@@ -345,9 +333,41 @@
             <div class="knowledge-box">
                 <h3>判定基準（○・△・☓）</h3>
                 <table class="criteria-table">
-                    <tr><th><span class="result-ok">○</span></th><td>配合変化がない</td></tr>
-                    <tr><th><span class="result-caution">△</span></th><td>配合条件によって結果が変わる / 注意が必要</td></tr>
-                    <tr><th><span class="result-ng">☓</span></th><td>配合直後の変化 / 明らかな配合変化</td></tr>
+                    <tr>
+                        <th><span class="result-ok">○</span></th>
+                        <td>
+                            <strong>配合変化がない</strong><br>
+                            <p>抗菌薬との混合など長時間の混合が想定されない薬剤の24時間後の配合結果は評価しない(3時間後くらいまで変化なしであれば○)。</p>
+                            <ul class="criteria-list">
+                                <li>配合後〜24時間後において、外観変化がなく、本剤の残存率が90%以上(配合医薬品の残存率ではない)</li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><span class="result-caution">△</span></th>
+                        <td>
+                            <strong>配合条件によって結果が変わる。類似薬のデータがある。○と判断するには注意が必要な場合。</strong>
+                            <p>下記のいずれか1つに該当するもの</p>
+                            <ul class="criteria-list">
+                                <li>配合後〜x時間後(1&lt;x&lt;24)において、外観変化がなく、残存率が90%以上 (すなわち、上記「○」とほぼ同様の結果であるが、測定時間が24時間に満たないもの)<br>例)測定時間6時間の実験において、6時間後までに外観変化がなく、その時点の残存率が91%</li>
+                                <li>配合24時間後の残存率(測定時間が24時間に満たないものはその時間での残存率)が90%未満であるが、 外観変化がなく、配合後~1時間後の残存率が90%以上<br>例)色調変化等の外観変化がなく、1時間後、24時間後の残存率がそれぞれ92%, 85%</li>
+                                <li>色調変化はあるが、混濁・沈殿・結晶析出・ゲル化などの変化はなく、配合後〜24時間後の残存率(測定時間が24時間に満たないものはその時間での残存率)が90%以上<br>例)測定時間12時間の実験において、色調変化がみられたが12時間後の残存率が93%</li>
+                                <li>一部の配合変化表において、残存率が記載されていない場合がある。外観変化がない場合または色調変化のみの場合(混濁,沈殿・結晶析出・ゲル化等の変化がないもの)については、〔残存率データなし〕 と記載し、可否を△としている</li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><span class="result-ng">☓</span></th>
+                        <td>
+                            <strong>配合直後の変化。結晶化・白濁などの明らかな配合変化。</strong>
+                            <p>○および△の条件に該当しない場合</p>
+                            <ul class="criteria-list">
+                                <li>例)配合後〜1時間後までの残存率が90%未満 (原則として、1時間後の残存率データの記載がある場合、 ただし、1時間後の残存率データがない場合においても、著しい低下がみられる場合は×としていることもある)。</li>
+                                <li>24時間以内に、混濁・沈殿・結晶析出、ゲル化等の色調以外の外観変化がある(当該医薬品の性状が濁っている場合も含む)。</li>
+                                <li>24時間以内に、色調変化および残存率データ低下 (90%未満)の双方がみられる</li>
+                            </ul>
+                        </td>
+                    </tr>
                 </table>
             </div>
             <div class="knowledge-box">
@@ -393,16 +413,24 @@
         function showTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(c => {
                 c.classList.remove('active');
+                c.style.display = 'none'; 
             });
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             
             const target = document.getElementById(tabId);
             target.classList.add('active');
             
+            // 薬剤一覧はflexレイアウト
+            if (tabId === 'drug-list') {
+                target.style.display = 'flex';
+            } else {
+                target.style.display = 'block';
+            }
+            
             event.currentTarget.classList.add('active');
             
-            // タブ切り替え時に詳細ウィンドウを閉じる
             closeDetailWindow();
+            window.scrollTo({top: 0, behavior: 'auto'});
         }
 
         function formatName(name) {
@@ -558,15 +586,12 @@
             filterDrugCards('');
         }
 
-        // ▼▼▼ 詳細ウィンドウ処理（3行レイアウト） ▼▼▼
         function addToDetailWindow(drug1Name, drug2Name, detailsHtml) {
             const win = document.getElementById('detail-window');
             const body = document.getElementById('window-body');
             const uniqueId = `detail-item-${drug1Name}-${drug2Name}`;
             
             if (body.innerHTML.includes('結果をタップすると')) body.innerHTML = '';
-            
-            // 重複チェック: 既に同じIDの要素があれば追加しない
             if (document.getElementById(uniqueId)) return;
 
             const newContent = document.createElement('div');
@@ -691,7 +716,7 @@
             if (!conditions || conditions.length === 0) return '';
             let listHtml = '<ul class="result-conditions-list">';
             conditions.forEach(c => {
-                if (!c.condition) return; // 条件なしは表示しない
+                if (!c.condition) return;
                 
                 let outcomeSymbol = '';
                 const r = c.outcome ? c.outcome.trim() : '';
